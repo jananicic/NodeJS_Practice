@@ -1,20 +1,21 @@
-const express = require('express');
-const expressLayouts = require('express-ejs-layouts');
-const mongoose = require('mongoose');
-const flash = require('connect-flash');
-const session = require('express-session');
-const passport = require('passport');
+import express from 'express';
+import expressLayouts from 'express-ejs-layouts';
+import mongoose from 'mongoose';
+import flash from 'connect-flash';
+import session from 'express-session';
+import passport from 'passport';
+import {mongoURI} from "./config/keys";
+import passportValidation from './config/passport';
+import home from './routes';
+import users from './routes/users';
 
 const app = express();
 
 // Passport conf
-require('./config/passport')(passport);
-
-// DB Config
-const db = require('./config/keys').mongoURI;
+passportValidation(passport);
 
 // Connect to Mongo
-mongoose.connect(db, {useNewUrlParser: true})
+mongoose.connect(mongoURI, {useNewUrlParser: true})
     .then(() => console.log("MongoDB Conected..."))
     .catch(console.log);
 
@@ -48,8 +49,8 @@ app.use((req, res, next) => {
 });
 
 //ROUTES
-app.use('/', require('./routes'));
-app.use('/users', require('./routes/users'));
+app.use('/', home);
+app.use('/users', users);
 
 const PORT = process.env.PORT || 5000;
 

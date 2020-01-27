@@ -5,8 +5,9 @@
   "description": "Application for learning node and authentication",
   "main": "app.ts",
   "scripts": {
-    "start": "nodemon --exec babel-node app.ts",
-    "dev": "nodemon app.ts"
+    "start": "node -r ts-node/register ./app.ts",
+    "start:watch": "nodemon",
+    "build": "tsc"
   },
   "dependencies": {
     "@types/node": "^13.1.8",
@@ -24,6 +25,8 @@
     "@babel/core": "^7.8.3",
     "@babel/node": "^7.8.3",
     "@babel/preset-env": "^7.8.3",
-    "nodemon": "^2.0.2"
+    "nodemon": "^2.0.2",
+    "ts-node": "^8.6.2",
+    "typescript": "^3.7.5"
   }
 }

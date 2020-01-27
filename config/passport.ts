@@ -1,31 +1,33 @@
-const LocalStrategy = require('passport-local');
-const bcrypt = require('bcryptjs');
+import LocalStrategy from 'passport-local';
+import bcrypt from 'bcryptjs';
 
 // Load user model
-const User = require('../models/user');
+import User from '../models/user';
 
-module.exports = function (passport) {
+const comparePasswords = (password: string, userPassword: string): Promise<boolean> => new Promise((resolve, reject) => {
+    bcrypt.compare(password, userPassword, (err, isMatch) => {
+        if (err) return reject(err);
+        return resolve(isMatch)
+    });
+});
+
+export default (passport) => {
     passport.use(
-        new LocalStrategy({usernameField: 'email'}, (email, password, done) => {
+        new LocalStrategy({usernameField: 'email'}, async (email, password, done) => {
             // Match user
-            User.findOne({email: email})
-                .then(user => {
-                    if (!user) {
-                        return done(null, false, {message: "That email is not registered"});
-                    }
-
-                    // Match password
-                    bcrypt.compare(password, user.password, (err, isMatch) => {
-                        if (err) throw new err;
-
-                        if (isMatch) {
-                            return done(null, user);
-                        } else {
-                            return done(null, false, {message: "Password is incorrect"});
-                        }
-                    })
-                })
-                .catch(console.log);
+            try {
+                const user = await User.findOne({email: email});
+                if (!user) return done(null, false, {message: "That email is not registered"});
+                // Match password
+                const isMatched = await comparePasswords(password, user.password);
+                if (isMatched) {
+                    return done(null, user);
+                } else {
+                    return done(null, false, {message: "Password is incorrect"});
+                }
+            } catch (err) {
+                return done(null, false, {message: 'Internal server error.'});
+            }
         })
     );
 

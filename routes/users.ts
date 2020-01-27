@@ -1,9 +1,9 @@
-const express = require('express');
-const router = express.Router();
-const User = require('../models/user');
-const bcrypt = require('bcryptjs');
-const passport = require('passport');
+import {Router} from 'express';
+import User from '../models/user';
+import bcrypt from 'bcryptjs';
+import passport from 'passport';
 
+const router = Router();
 
 //Login Page
 router.get('/login', (req, res, next) => {
@@ -15,55 +15,48 @@ router.get('/register', (req, res, next) => {
     res.render('register');
 });
 
-router.post('/register', (req, res) => {
+const generateSalt = (rounds: number): Promise<string> => new Promise(((resolve, reject) => {
+    bcrypt.genSalt(rounds, (err, salt) => {
+        if (err) return reject(err);
+
+        return resolve(salt)
+    })
+}));
+
+const generateHash = (pass: string, salt: string): Promise<string> => new Promise(((resolve, reject) => {
+    bcrypt.hash(pass, salt, (err, hash) => {
+        if (err) return reject(err);
+        return resolve(hash);
+    });
+}));
+
+router.post('/register', async (req, res) => {
     const {name, email, password, password2} = req.body;
-    let errors = [];
 
-    // Check required fields
-    if (!name || !email || !password || !password2) {
-        errors.push({msg: "Please fill in all fields"});
-    }
+    if (!name || !email || !password || !password2) return res.render('register', {errors: [{msg: "Please fill in all fields"}], ...req.body});
+    if (password !== password2) return res.render('register', {errors: [{msg: "Password do not match"}], ...req.body});
+    if (password.length < 6) return res.render('register', {errors: [{msg: "Password should be at least 6 characters"}], ...req.body});
 
-    // Check if passwords match
-    if (password !== password2) {
-        errors.push({msg: "Password do not match"});
-    }
-
-    // Check pass length
-    if (password.length < 6) {
-        errors.push({msg: "Password should be at least 6 characters"})
-    }
-
-    if (errors.length > 0) {
-        res.render('register', {errors, ...req.body});
-    } else {
-        // Validation passed
-        User.findOne({email: email})
-            .then(user => {
-                // User exists
-                if (user) {
-                    errors.push({msg: "User already exists"});
-                    res.render('register', {errors, ...req.body});
-                } else {
-                    const newUser = new User({
-                        name,
-                        email,
-                        password
-                    });
-                    // Hash password
-                    bcrypt.genSalt(10, (err, salt) =>
-                        bcrypt.hash(newUser.password, salt, (err, hash) => {
-                            if (err) throw err;
-                            newUser.password = hash;
-                            newUser.save()
-                                .then(() => {
-                                    req.flash("success_msg", "You are now registered and can now Login");
-                                    res.redirect('/users/login');
-                                })
-                                .catch(console.log);
-                        }))
-                }
-            })
+    try {
+        const user = await User.findOne({email: email});
+        if (user) {
+            return res.render('register', {errors: [{msg: "User already exists"}], ...req.body});
+        } else {
+            const newUser = new User({
+                name,
+                email,
+                password
+            });
+            const salt = await generateSalt(10);
+            const hash = await generateHash(password, salt);
+            newUser.password = hash;
+            await newUser.save();
+            req.flash("success_msg", "You are now registered and can now Login");
+            res.redirect('/users/login');
+        }
+    } catch (err) {
+        console.log(err);
+        res.render('register', {errors: [{msg: "Internal server error"}], ...req.body});
     }
 });
 
@@ -76,9 +69,9 @@ router.post('/login', (req, res, next) => {
 });
 
 router.get('/logout', (req, res, next) => {
-   req.logout();
-   req.flash('success_msg', 'You are logged out');
-   res.redirect('/users/login');
+    req.logout();
+    req.flash('success_msg', 'You are logged out');
+    res.redirect('/users/login');
 });
 
-module.exports = router;
+export default router;

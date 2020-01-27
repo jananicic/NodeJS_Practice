@@ -1,16 +1,17 @@
-const express = require('express');
-const router = express.Router();
-const {ensureAuthenticated} = require('../config/auth');
+import {Router} from 'express';
+import {ensureAuthenticated} from '../config/auth';
+
+const router = Router();
 
 /* GET home page. */
 router.get('/', (req, res, next) => {
-  res.render('welcome');
+    res.render('welcome');
 });
 
 router.get('/dashboard', ensureAuthenticated, (req, res, next) => {
-  res.render('dashboard', {
-    name: req.user.name
-  });
+    res.render('dashboard', {
+        name: req.user.name
+    });
 });
 
-module.exports = router;
+export default router;
